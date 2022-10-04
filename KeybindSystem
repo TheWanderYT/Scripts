@@ -25,12 +25,19 @@ KeybindSystem = {
         ["Remove"] = function(Index)
             KeybindSystem.Binds[Index] = nil
         end,
-        ["Change"] = function(Index, Key, Script)
-            KeybindSystem.Binds[Index] = {
-                ["Key"] = Key,
-                ["Enabled"] = false,
-                ["Function"] = Script
-            }
+        ["Change"] = function(Index, Key, Toggle, Script)
+            if Toggle then
+                KeybindSystem.Binds[Index] = {
+                    ["Key"] = Key,
+                    ["Toggled"] = false,
+                    ["Function"] = Function
+                }
+            else
+                KeybindSystem.Binds[Index] = {
+                    ["Key"] = Key,
+                    ["Function"] = Function
+                }
+            end
         end,
         ["CallBind"] = function(Input)
             for Index, Value in next, KeybindSystem.Binds do
