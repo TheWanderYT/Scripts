@@ -1,7 +1,4 @@
 local KeybindSystem = {
-    ["Binds"] = {
-
-    },
     ["Constants"] = {
         Debug = false
     },
@@ -46,6 +43,9 @@ local KeybindSystem = {
                 end
             end
         end
+    },
+    ["Binds"] = {
+
     },
 }
 
