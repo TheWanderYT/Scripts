@@ -20,12 +20,18 @@ KeybindSystem = {
                     ["Function"] = Function
                 }
             end
+            if KeybindSystem.Constants.Debug then
+                print("Added " .. Key .. " as " .. Index)
+            end
             return Index
         end,
         ["Remove"] = function(Index)
+            if KeybindSystem.Constants.Debug then
+                print("Removed " .. KeybindSystem.Binds[Index].Key .. " as " .. Index)
+            end
             KeybindSystem.Binds[Index] = nil
         end,
-        ["Change"] = function(Index, Key, Toggle, Script)
+        ["Change"] = function(Index, Key, Toggle, Function)
             if Toggle then
                 KeybindSystem.Binds[Index] = {
                     ["Key"] = Key,
@@ -37,6 +43,9 @@ KeybindSystem = {
                     ["Key"] = Key,
                     ["Function"] = Function
                 }
+            end
+            if KeybindSystem.Constants.Debug then
+                print("Changed " .. Key .. " as " .. Index)
             end
         end,
         ["CallBind"] = function(Input)
@@ -51,6 +60,9 @@ KeybindSystem = {
                         Value.Function(Value.Toggled)
                     else
                         Value.Function()
+                    end
+                    if KeybindSystem.Constants.Debug then
+                        print("Called " ..Index .. " as " .. Value.Key)
                     end
                 end
             end
