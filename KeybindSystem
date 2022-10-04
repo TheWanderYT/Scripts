@@ -1,4 +1,4 @@
-KeybindSystem = {
+local KeybindSystem = {
     ["Constants"] = {
         Debug = false
     },
