@@ -36,6 +36,7 @@ KeybindSystem = {
             for Index, Value in next, KeybindSystem.Binds do
                 if Value.Key == Input then
                     if Value["Toggled"] then
+                        Value.Toggled = not Value.Toggled
                         pcall(Value.Function(Value.Toggled))
                     else
                         pcall(Value.Function)
