@@ -42,11 +42,15 @@ KeybindSystem = {
         ["CallBind"] = function(Input)
             for Index, Value in next, KeybindSystem.Binds do
                 if Value.Key == Input then
-                    if Value["Toggled"] then
-                        Value.Toggled = not Value.Toggled
-                        pcall(Value.Function(Value.Toggled))
+                    if Value["Toggled"] ~= nil then
+                        if Value.Toggled then
+                            Value.Toggled = false
+                        else
+                            Value.Toggled = true
+                        end
+                        Value.Function(Value.Toggled)
                     else
-                        pcall(Value.Function)
+                        Value.Function()
                     end
                 end
             end
