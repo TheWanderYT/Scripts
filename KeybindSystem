@@ -51,5 +51,5 @@ local KeybindSystem = {
 
 
 game:GetService("UserInputService").InputEnded:Connect(function(Input, gameProcessed)
-    KeybindSystem.Function.CallBind(Input)
+    KeybindSystem.Functions.CallBind(Input)
 end)
