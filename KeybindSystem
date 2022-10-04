@@ -1,0 +1,55 @@
+local KeybindSystem = {
+    ["Constants"] = {
+        Debug = false
+    },
+    ["Functions"] = {
+        ["Debug"] = function(Debug)
+            KeybindSystem.Constants.Debug = Debug
+        end,
+        ["Add"] = function(Key, Toggle, Function)
+            local Index = #KeybindSystem.Binds + 1
+            if Toggle then
+                KeybindSystem.Binds[Index] = {
+                    ["Key"] = Key,
+                    ["Toggled"] = false,
+                    ["Function"] = Function
+                }
+            else
+                KeybindSystem.Binds[Index] = {
+                    ["Key"] = Key,
+                    ["Function"] = Function
+                }
+            end
+            return Index
+        end,
+        ["Remove"] = function(Index)
+            KeybindSystem.Binds[Index] = nil
+        end,
+        ["Change"] = function(Index, Key, Script)
+            KeybindSystem.Binds[Index] = {
+                ["Key"] = Key,
+                ["Enabled"] = false,
+                ["Function"] = Script
+            }
+        end,
+        ["CallBind"] = function(Input)
+            for Index, Value in next, KeybindSystem.Binds do
+                if Value.Key == Input then
+                    if Value["Toggled"] then
+                        pcall(Value.Function(Value.Toggled))
+                    else
+                        pcall(Value.Function)
+                    end
+                end
+            end
+        end
+    },
+    ["Binds"] = {
+
+    }
+}
+
+
+game:GetService("UserInputService").InputEnded:Connect(function(Input, gameProcessed)
+    KeybindSystem.Function.CallBind(Input)
+end)
