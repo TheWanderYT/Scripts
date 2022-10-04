@@ -1,4 +1,7 @@
 local KeybindSystem = {
+    ["Binds"] = {
+
+    },
     ["Constants"] = {
         Debug = false
     },
@@ -44,9 +47,6 @@ local KeybindSystem = {
             end
         end
     },
-    ["Binds"] = {
-
-    }
 }
 
 game:GetService("UserInputService").InputEnded:Connect(function(Input, gameProcessed)
