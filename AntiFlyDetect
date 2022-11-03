@@ -1,0 +1,23 @@
+repeat
+    task.wait()
+until game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").FloorMaterial ~= Enum.Material.Air
+
+local NameOfHumanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Name
+local SpoofFloor = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").FloorMaterial
+
+local IndexFloor; IndexFloor = hookmetamethod(game.Players.LocalPlayer.Character, "__index", function(Object, Parameter)
+    if tostring(Object) == NameOfHumanoid and Parameter == "FloorMaterial" and not checkcaller() then
+        return SpoofFloor
+    end
+    return IndexFloor(Object, Parameter)
+end)
+
+local NewIndexFloor; NewIndexFloor = hookmetamethod(game.Players.LocalPlayer.Character, "__newindex", function(Object, Parameter, Value)
+    if tostring(Object) == NameOfHumanoid and Parameter == "FloorMaterial" and not checkcaller() then
+        if Value ~= Enum.Material.Air then
+            SpoofFloor = Value
+        end
+        return NewIndexFloor(Object, Parameter, Value)
+    end
+    return NewIndexFloor(Object, Parameter, Value)
+end)
