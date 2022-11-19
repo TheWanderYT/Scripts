@@ -3,7 +3,9 @@ repeat
 until game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").FloorMaterial ~= Enum.Material.Air
 
 local NameOfHumanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Name
+local NameOfRoot = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Name
 local SpoofFloor = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").FloorMaterial
+local SpoofVelocity = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Velocity
 
 local IndexFloor; IndexFloor = hookmetamethod(game.Players.LocalPlayer.Character, "__index", function(Object, Parameter)
     if tostring(Object) == NameOfHumanoid and Parameter == "FloorMaterial" and not checkcaller() then
@@ -20,4 +22,19 @@ local NewIndexFloor; NewIndexFloor = hookmetamethod(game.Players.LocalPlayer.Cha
         return NewIndexFloor(Object, Parameter, Value)
     end
     return NewIndexFloor(Object, Parameter, Value)
+end)
+
+local IndexVel; IndexVel = hookmetamethod(game.Players.LocalPlayer.Character, "__index", function(Object, Parameter)
+    if tostring(Object) == NameOfRoot and Parameter == "Velocity" and not checkcaller() then
+        return SpoofVel
+    end
+    return IndexVel(Object, Parameter)
+end)
+
+local NewIndexVel; NewIndexVel = hookmetamethod(game.Players.LocalPlayer.Character, "__newindex", function(Object, Parameter, Value)
+    if tostring(Object) == NameOfRoot and Parameter == "Velocity" and not checkcaller() then
+        SpoofVel = Value
+        return NewIndexFloor(Object, Parameter, Value)
+    end
+    return NewIndexVel(Object, Parameter, Value)
 end)
