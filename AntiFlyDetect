@@ -41,7 +41,7 @@ end)
 
 spawn(function()
     while true do task.wait()
-        for i,v in next, getconnections(game.Players.LocalPlayer.Character.Humanoid.GetPropertyChangedSignal) do
+        for i,v in next, getconnections(game.Players.LocalPlayer.Character.HumanoidRootPart.GetPropertyChangedSignal) do
             v:Disable()
         end
     end
