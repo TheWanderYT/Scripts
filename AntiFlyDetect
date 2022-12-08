@@ -40,7 +40,9 @@ local NewIndexVel; NewIndexVel = hookmetamethod(game.Players.LocalPlayer.Charact
 end)
 
 spawn(function()
-    for i,v in next, getconnections(game.Players.LocalPlayer.Character.Humanoid.GetPropertyChangedSignal) do
-        v:Disable()
+    while true do task.wait()
+        for i,v in next, getconnections(game.Players.LocalPlayer.Character.Humanoid.GetPropertyChangedSignal) do
+            v:Disable()
+        end
     end
 end)
