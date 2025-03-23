@@ -1,0 +1,248 @@
+-- // CombatHandler Module
+local CombatHandler = {}
+
+-- // Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+-- // Variables
+CombatHandler.Humanoid = nil
+CombatHandler.Variables = nil
+CombatHandler.CharacterRequests = nil
+CombatHandler.ReplicatedRequests = nil
+CombatHandler.CharacterData = nil
+CombatHandler.Root = nil
+
+-- // Initialize Function
+function CombatHandler:Initialize(characterData, root, humanoid, variables, characterRequests, replicatedRequests)
+	self.CharacterData = characterData
+	self.Root = root
+	self.Humanoid = humanoid
+	self.Variables = variables
+	self.CharacterRequests = characterRequests
+	self.ReplicatedRequests = replicatedRequests
+end
+
+-- // Update Function
+function CombatHandler:Update(animsFolder) -- Pass animsFolder as argument
+	self:UpdateIdle(animsFolder) -- Pass animsFolder
+	self:UpdateRhythm()
+end
+
+-- // Rhythm Check Function
+function CombatHandler:RhythmCheck()
+	if require(game.ReplicatedStorage.Modules.MovementHandler):IsMoving() or require(game.ReplicatedStorage.Modules.Utility).InAir(self.Humanoid) then
+		return false
+	end
+
+	if not require(ReplicatedStorage.Modules.ActionChecks).RhythmCheck(self.CharacterData) then
+		return false
+	end
+
+	local Tool = self:GetTool()
+
+	if not Tool or (not Tool:FindFirstChild("Style") and not Tool:FindFirstChild("Skill")) then
+		return false
+	end
+
+	return true
+end
+
+-- // Idle Check Function
+function CombatHandler:IdleCheck()
+	if not require(ReplicatedStorage.Modules.ActionChecks).IdleCheck(self.CharacterData) then
+		return false
+	end
+
+	return true
+end
+
+-- // Charge Rhythm Function
+function CombatHandler:ChargeRhythm()
+	if self.CharacterData:FindFirstChild("ClientRhythm") then
+		self.CharacterData:FindFirstChild("ClientRhythm"):Destroy()
+		return
+	end
+
+	if not self:RhythmCheck() then
+		return
+	end
+
+	local Animations = game:GetService("StarterPlayer").StarterPlayerScripts:FindFirstChild("ClientController").AnimsFolder
+
+	if Animations and Animations.Stance then
+		local Animation = self.Humanoid:LoadAnimation(Animations.Stance)
+		Animation:Play()
+		self.Variables.StanceAnimation = Animation
+	end
+
+	local Part, Pos = workspace:FindPartOnRayWithIgnoreList(Ray.new(self.Root.Position, Vector3.new(0, -10, 0)), {workspace.Effects, workspace.Live, workspace.Spawns})
+
+	if Part then
+		local RhythmEffect = ReplicatedStorage.Assets.Rhythm:Clone()
+		RhythmEffect.Parent = workspace.Effects
+		RhythmEffect.Position = Pos
+		RhythmEffect.Attachment.Smoke:Emit(30)
+		game.Debris:AddItem(RhythmEffect, 3)
+	end
+
+	local Tag = Instance.new("Folder")
+	Tag.Name = "ClientRhythm"
+	Tag.Parent = self.CharacterData
+
+	self.CharacterRequests.ChargeRhythm:FireServer(true)
+
+	while true do
+		if not self.CharacterData:FindFirstChild("ClientRhythm") or not self:RhythmCheck() then
+			break
+		end
+
+		task.wait()
+	end
+
+	self.CharacterRequests.ChargeRhythm:FireServer(false)
+
+	if Tag then
+		Tag:Destroy()
+	end
+
+	if self.Variables.StanceAnimation then
+		self.Variables.StanceAnimation:Stop()
+		self.Variables.StanceAnimation = nil
+	end
+end
+
+-- // Show Rhythm Function
+function CombatHandler:ShowRhythm()
+	local RhythmUI = self.Root.Parent:FindFirstChild("RhythmUI")
+	if not RhythmUI then return end
+
+	for i, v in pairs(RhythmUI:GetDescendants()) do
+		if v.Name ~= "F" and v:IsA("ImageLabel") then
+			TweenService:Create(v, TweenInfo.new(0.4), {ImageTransparency = 0}):Play()
+		end
+		if v.Name == "Bar" then
+			TweenService:Create(v, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+		end
+	end
+end
+
+-- // Hide Rhythm Function
+function CombatHandler:HideRhythm()
+	local RhythmUI = self.Root.Parent:FindFirstChild("RhythmUI")
+	if not RhythmUI then return end
+
+	for i, v in pairs(RhythmUI:GetDescendants()) do
+		if v.Name ~= "F" and v:IsA("ImageLabel") then
+			TweenService:Create(v, TweenInfo.new(0.4), {ImageTransparency = 1}):Play()
+		end
+		if v.Name == "Bar" then
+			TweenService:Create(v, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+		end
+	end
+end
+
+-- // Update Rhythm Function
+function CombatHandler:UpdateRhythm()
+	local RhythmUI = self.Root.Parent:FindFirstChild("RhythmUI")
+	if not RhythmUI then return end
+
+	if RhythmUI:FindFirstChild("F") then
+		TweenService:Create(RhythmUI.F.BarQ.Bar, TweenInfo.new(0.2), {Size = UDim2.new(0.6, 0, self.CharacterData.Rhythm.Value / 100, 0)}):Play()
+	end
+end
+
+-- // Update Idle Function
+function CombatHandler:UpdateIdle(animsFolder) -- Accept animsFolder as argument
+	local Tool = self:GetTool()
+
+	if self:IdleCheck() and Tool and (Tool:FindFirstChild("Style") or Tool:FindFirstChild("Skill")) then
+		if not self.Variables.Idle then
+			if animsFolder and animsFolder.Idle then
+				local Animation = self.Humanoid:LoadAnimation(animsFolder.Idle)
+				Animation:Play()
+				self.Variables.Idle = Animation
+			end
+		end
+	elseif self.Variables.Idle then
+		self.Variables.Idle:Stop()
+		self.Variables.Idle = nil
+	end
+end
+
+-- // Get Tool Function
+function CombatHandler:GetTool()
+	local Character = game.Players.LocalPlayer.Character
+	if not Character then return nil end
+
+	for i, v in pairs(Character:GetChildren()) do
+		if v:IsA("Tool") then
+			return v
+		end
+	end
+
+	return nil
+end
+
+-- // Is In Air Function (Local)
+local function InAir()
+	local Character = game.Players.LocalPlayer.Character
+	if not Character then return false end
+	local Humanoid = Character:FindFirstChild("Humanoid")
+	if not Humanoid then return false end
+
+	return Humanoid.FloorMaterial == Enum.Material.Air
+end
+
+-- // Sprint Check Function (Local)
+local function SprintCheck()
+	local CharacterData = game.Players.LocalPlayer.Character:FindFirstChild("CharacterData")
+	if not CharacterData then return false end
+
+	return require(ReplicatedStorage.Modules.ActionChecks).SprintCheck(CharacterData)
+end
+
+-- // Footstep Function (Local)
+local function Footstep()
+	local Character = game.Players.LocalPlayer.Character
+	if not Character then return end
+	local Humanoid = Character:FindFirstChild("Humanoid")
+	if not Humanoid then return end
+
+	if not InAir() then
+		local Material = "Concrete"
+
+		if Humanoid.FloorMaterial == Enum.Material.Grass then
+			Material = "Grass"
+		end
+
+		if Humanoid.FloorMaterial == Enum.Material.Sand then
+			Material = "Sand"
+		end
+
+		if Humanoid.FloorMaterial == Enum.Material.Wood or Humanoid.FloorMaterial == Enum.Material.WoodPlanks then
+			Material = "Wood"
+		end
+
+		local Sound = ReplicatedStorage.Footstep_Sounds:FindFirstChild(Material)
+
+		if Sound then
+			local Clone = Sound:Clone()
+			Clone.Parent = Character:FindFirstChild("RightFoot")
+			Clone.Volume = 0.25
+			Clone.PlaybackSpeed = Clone.PlaybackSpeed + math.random(-8, 10) / 100
+
+			--if Variables.Sprint then
+			--	Clone.PlaybackSpeed = Clone.PlaybackSpeed * 1.6
+			--end
+
+			Clone:Play()
+
+			Clone.Ended:connect(function()
+				Clone:Destroy()
+			end)
+		end
+	end
+end
+
+return CombatHandler
