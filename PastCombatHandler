@@ -16,17 +16,17 @@ CombatHandler.Root = nil
 -- // Initialize Function
 function CombatHandler:Initialize(characterData, root, humanoid, variables, characterRequests, replicatedRequests)
 	self.CharacterData = characterData
-	self.Root = root
 	self.Humanoid = humanoid
 	self.Variables = variables
 	self.CharacterRequests = characterRequests
 	self.ReplicatedRequests = replicatedRequests
+	self.Root = root
 end
 
 -- // Update Function
-function CombatHandler:Update(animsFolder) -- Pass animsFolder as argument
-	self:UpdateIdle(animsFolder) -- Pass animsFolder
-	self:UpdateRhythm()
+function CombatHandler:Update()
+	--self:UpdateRhythm()
+	--self:UpdateIdle()
 end
 
 -- // Rhythm Check Function
@@ -73,13 +73,14 @@ function CombatHandler:ChargeRhythm()
 	if Animations and Animations.Stance then
 		local Animation = self.Humanoid:LoadAnimation(Animations.Stance)
 		Animation:Play()
+
 		self.Variables.StanceAnimation = Animation
 	end
 
 	local Part, Pos = workspace:FindPartOnRayWithIgnoreList(Ray.new(self.Root.Position, Vector3.new(0, -10, 0)), {workspace.Effects, workspace.Live, workspace.Spawns})
 
 	if Part then
-		local RhythmEffect = ReplicatedStorage.Assets.Rhythm:Clone()
+		local RhythmEffect = game:GetService("ReplicatedStorage").Assets.Rhythm:Clone()
 		RhythmEffect.Parent = workspace.Effects
 		RhythmEffect.Position = Pos
 		RhythmEffect.Attachment.Smoke:Emit(30)
@@ -114,10 +115,7 @@ end
 
 -- // Show Rhythm Function
 function CombatHandler:ShowRhythm()
-	local RhythmUI = self.Root.Parent:FindFirstChild("RhythmUI")
-	if not RhythmUI then return end
-
-	for i, v in pairs(RhythmUI:GetDescendants()) do
+	for i, v in pairs(self.Root.Parent:FindFirstChild("RhythmUI"):GetDescendants()) do
 		if v.Name ~= "F" and v:IsA("ImageLabel") then
 			TweenService:Create(v, TweenInfo.new(0.4), {ImageTransparency = 0}):Play()
 		end
@@ -129,10 +127,7 @@ end
 
 -- // Hide Rhythm Function
 function CombatHandler:HideRhythm()
-	local RhythmUI = self.Root.Parent:FindFirstChild("RhythmUI")
-	if not RhythmUI then return end
-
-	for i, v in pairs(RhythmUI:GetDescendants()) do
+	for i, v in pairs(self.Root.Parent:FindFirstChild("RhythmUI"):GetDescendants()) do
 		if v.Name ~= "F" and v:IsA("ImageLabel") then
 			TweenService:Create(v, TweenInfo.new(0.4), {ImageTransparency = 1}):Play()
 		end
@@ -143,24 +138,33 @@ function CombatHandler:HideRhythm()
 end
 
 -- // Update Rhythm Function
-function CombatHandler:UpdateRhythm()
+function CombatHandler:UpdateRhythm(characterData)
+	self.CharacterData = characterData
 	local RhythmUI = self.Root.Parent:FindFirstChild("RhythmUI")
-	if not RhythmUI then return end
 
-	if RhythmUI:FindFirstChild("F") then
-		TweenService:Create(RhythmUI.F.BarQ.Bar, TweenInfo.new(0.2), {Size = UDim2.new(0.6, 0, self.CharacterData.Rhythm.Value / 100, 0)}):Play()
+	if RhythmUI and RhythmUI:FindFirstChild("F") then
+		TweenService:Create(RhythmUI.F.BarQ.Bar,TweenInfo.new(0.2),{Size = UDim2.new(0.6, 0, self.CharacterData.Rhythm.Value / 100, 0)}):Play()
+
+		if self.CharacterData and self.CharacterData.Rhythm.Value > 0 then
+			self:ShowRhythm()
+		else
+			self:HideRhythm()
+		end
 	end
 end
 
 -- // Update Idle Function
-function CombatHandler:UpdateIdle(animsFolder) -- Accept animsFolder as argument
+function CombatHandler:UpdateIdle()
 	local Tool = self:GetTool()
 
 	if self:IdleCheck() and Tool and (Tool:FindFirstChild("Style") or Tool:FindFirstChild("Skill")) then
 		if not self.Variables.Idle then
-			if animsFolder and animsFolder.Idle then
-				local Animation = self.Humanoid:LoadAnimation(animsFolder.Idle)
+			local Animations = game:GetService("StarterPlayer").StarterPlayerScripts:FindFirstChild("ClientController").AnimsFolder
+
+			if Animations and Animations.Idle then
+				local Animation = self.Humanoid:LoadAnimation(Animations.Idle)
 				Animation:Play()
+
 				self.Variables.Idle = Animation
 			end
 		end
@@ -170,79 +174,140 @@ function CombatHandler:UpdateIdle(animsFolder) -- Accept animsFolder as argument
 	end
 end
 
+-- // Taunt Function
+function CombatHandler:Taunt()
+	self.CharacterRequests.Taunt:FireServer()
+end
+
+-- // Mount Function
+function CombatHandler:Mount()
+	ReplicatedStorage.Requests.Actions.Mount:FireServer()
+end
+
+-- // Rob Function
+function CombatHandler:Rob()
+	ReplicatedStorage.Requests.Actions.Rob:FireServer()
+end
+
+-- // Block Function
+function CombatHandler:Block()
+	self.CharacterRequests.Block:FireServer()
+end
+
+-- // Unblock Function
+function CombatHandler:Unblock()
+	self.CharacterRequests.Unblock:FireServer()
+end
+
+-- // Mode Function
+function CombatHandler:Mode(Supreme)
+	self.CharacterRequests.Mode:FireServer(Supreme)
+end
+
+-- // Left Click Function
+function CombatHandler:LeftClick(Tool)
+	self.CharacterRequests.LeftClick:FireServer(Tool)
+end
+
+-- // Right Click Function
+function CombatHandler:RightClick(Tool)
+	self.CharacterRequests.RightClick:FireServer(Tool)
+end
+
 -- // Get Tool Function
 function CombatHandler:GetTool()
-	local Character = game.Players.LocalPlayer.Character
-	if not Character then return nil end
+	local Tool = game.Players.LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+	return Tool
+end
 
-	for i, v in pairs(Character:GetChildren()) do
-		if v:IsA("Tool") then
-			return v
+-- // Get Anims Folder Function
+function CombatHandler:GetAnimsFolder()
+	local CombatTool = require(game.ReplicatedStorage.Modules.MovementHandler):GetCombatTool()
+	local Style = CombatTool and CombatTool.Style.Value
+	local Animations = CombatTool and CombatTool.Config.Stance.Value
+	local Folder = game:GetService("ReplicatedStorage").Assets.Animations.Styles:FindFirstChild(Style)
+	Folder = Folder and Folder:FindFirstChild(Animations)
+
+	return Folder
+end
+
+-- // Handle Combat Input Began Function
+function CombatHandler:HandleCombatInputBegan(Key)
+	if Key.KeyCode == Enum.KeyCode.V then
+		self:Mount()
+	end
+
+	if Key.KeyCode == Enum.KeyCode.C then
+		self:Rob()
+	end
+
+	if Key.KeyCode == Enum.KeyCode.R and not require(game.ReplicatedStorage.Modules.MovementHandler):IsSprinting() then
+		self:ChargeRhythm()
+	end
+
+	if Key.KeyCode == Enum.KeyCode.B then
+		self:Taunt()
+	end
+
+	if Key.KeyCode == Enum.KeyCode.T then
+		if game.Players.LocalPlayer.PlayerGui:FindFirstChild("FlowUI") and self.CharacterData:FindFirstChild("SupremeFlow") then
+			local Supreme = false
+			local Timer = 0
+			while game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.T) do task.wait(0.1)
+				Timer += 0.1
+				if Timer >= 2 then
+					Supreme = true
+					if game.Players.LocalPlayer.PlayerGui:FindFirstChild("FlowUI") then
+						local Tween = game:GetService("TweenService"):Create(game.Players.LocalPlayer.PlayerGui:FindFirstChild("FlowUI").Activate.UIGradient, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {Offset = Vector3.new(1, 0, 0)})
+						Tween:Play()
+						repeat
+							task.wait()
+						until not game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.T)
+						break
+					end
+				end
+			end
+			self:Mode(Supreme)
+		else
+			self:Mode(false)
 		end
 	end
 
-	return nil
-end
-
--- // Is In Air Function (Local)
-local function InAir()
-	local Character = game.Players.LocalPlayer.Character
-	if not Character then return false end
-	local Humanoid = Character:FindFirstChild("Humanoid")
-	if not Humanoid then return false end
-
-	return Humanoid.FloorMaterial == Enum.Material.Air
-end
-
--- // Sprint Check Function (Local)
-local function SprintCheck()
-	local CharacterData = game.Players.LocalPlayer.Character:FindFirstChild("CharacterData")
-	if not CharacterData then return false end
-
-	return require(ReplicatedStorage.Modules.ActionChecks).SprintCheck(CharacterData)
-end
-
--- // Footstep Function (Local)
-local function Footstep()
-	local Character = game.Players.LocalPlayer.Character
-	if not Character then return end
-	local Humanoid = Character:FindFirstChild("Humanoid")
-	if not Humanoid then return end
-
-	if not InAir() then
-		local Material = "Concrete"
-
-		if Humanoid.FloorMaterial == Enum.Material.Grass then
-			Material = "Grass"
+	if Key.UserInputType == Enum.UserInputType.MouseButton1 then
+		if not self:GetTool() and self.CharacterData:FindFirstChild("MountHit") then
+			self.CharacterData:FindFirstChild("MountHit"):FireServer("Hit")
+			return
 		end
 
-		if Humanoid.FloorMaterial == Enum.Material.Sand then
-			Material = "Sand"
+		local Tool = self:GetTool()
+		self.CharacterRequests.LeftClick:FireServer(Tool)
+	end
+
+	if Key.UserInputType == Enum.UserInputType.MouseButton2 then
+		if not self:GetTool() and self.CharacterData:FindFirstChild("MountHit") then
+			self.CharacterData:FindFirstChild("MountHit"):FireServer("Pummel")
+			return
 		end
 
-		if Humanoid.FloorMaterial == Enum.Material.Wood or Humanoid.FloorMaterial == Enum.Material.WoodPlanks then
-			Material = "Wood"
-		end
+		local Tool = self:GetTool()
+		self.CharacterRequests.RightClick:FireServer(Tool)
+	end
 
-		local Sound = ReplicatedStorage.Footstep_Sounds:FindFirstChild(Material)
-
-		if Sound then
-			local Clone = Sound:Clone()
-			Clone.Parent = Character:FindFirstChild("RightFoot")
-			Clone.Volume = 0.25
-			Clone.PlaybackSpeed = Clone.PlaybackSpeed + math.random(-8, 10) / 100
-
-			--if Variables.Sprint then
-			--	Clone.PlaybackSpeed = Clone.PlaybackSpeed * 1.6
-			--end
-
-			Clone:Play()
-
-			Clone.Ended:connect(function()
-				Clone:Destroy()
-			end)
-		end
+	if Key.KeyCode == Enum.KeyCode.F and not self.cd then
+		self:Block()
+		self.cd = true
+		task.delay(1.6, function()
+			self.cd = false
+		end)
 	end
 end
 
+-- // Handle Combat Input Ended Function
+function CombatHandler:HandleCombatInputEnded(Key)
+	if Key.KeyCode == Enum.KeyCode.F then
+		self:Unblock()
+	end
+end
+
+-- // Return the module
 return CombatHandler
